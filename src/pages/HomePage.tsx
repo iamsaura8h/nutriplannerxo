@@ -1,16 +1,44 @@
 
 import React from "react";
 import UserInputForm from "@/components/UserInputForm";
-import { Activity, BarChart4, Scale } from "lucide-react";
+import { Activity, BarChart4, Scale, LogIn } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">NutriPlanner</h1>
-        <p className="text-xl text-muted-foreground">
-          Calculate your BMI, BMR, and get personalized meal recommendations
-        </p>
+      <div className="flex justify-between items-center mb-12">
+        <div>
+          <h1 className="text-4xl font-bold">NutriPlanner</h1>
+          <p className="text-xl text-muted-foreground">
+            Calculate your BMI, BMR, and get personalized meal recommendations
+          </p>
+        </div>
+        
+        <div>
+          {user ? (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="font-medium">{user.email}</p>
+                <p className="text-sm text-muted-foreground">Signed in</p>
+              </div>
+              <Button variant="outline" onClick={() => signOut()}>Sign Out</Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign In
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">

@@ -6,12 +6,17 @@ import ResultDisplay from "@/components/ResultDisplay";
 import MealRecommendations from "@/components/MealRecommendations";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ActivitySquare, Utensils } from "lucide-react";
+import { ArrowLeft, ActivitySquare, Utensils, LogOut } from "lucide-react";
 import { calculateBMR, calculateTDEE, calculateCalories } from "@/utils/nutritionCalculator";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const ResultsPage = () => {
   const [userData, setUserData] = useState<UserFormData | null>(null);
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   // Calculate calories for meal recommendations
   const calculateUserCalories = () => {
@@ -26,6 +31,39 @@ const ResultsPage = () => {
     return calculateCalories(tdee, userData.goal);
   };
 
+  const saveUserData = async (data: UserFormData) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_nutrition_data')
+        .insert({
+          user_id: user.id,
+          weight: parseFloat(data.weight),
+          height: parseFloat(data.height),
+          age: parseInt(data.age),
+          gender: data.gender,
+          activity_level: data.activityLevel,
+          goal: data.goal
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Data saved",
+        description: "Your nutrition data has been saved to your profile.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error saving data",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     // Get user data from localStorage
     const storedData = localStorage.getItem("userFormData");
@@ -33,6 +71,11 @@ const ResultsPage = () => {
       try {
         const parsedData = JSON.parse(storedData) as UserFormData;
         setUserData(parsedData);
+        
+        // Save to Supabase if user is logged in
+        if (user) {
+          saveUserData(parsedData);
+        }
       } catch (error) {
         console.error("Error parsing user data:", error);
         navigate("/");
@@ -41,7 +84,7 @@ const ResultsPage = () => {
       // If no data is found, redirect to the home page
       navigate("/");
     }
-  }, [navigate]);
+  }, [navigate, user]);
 
   if (!userData) {
     return <div className="container py-12 text-center">Loading...</div>;
@@ -60,6 +103,17 @@ const ResultsPage = () => {
         </Button>
         
         <h1 className="text-2xl font-bold">Your Nutrition Results</h1>
+        
+        {user && (
+          <Button 
+            variant="ghost" 
+            onClick={() => signOut()}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="analysis" className="mb-10">
